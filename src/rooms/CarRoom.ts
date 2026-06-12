@@ -5,6 +5,7 @@ interface PlayerInfo {
     seat: "P1" | "P2";
     ready: boolean;
     grid: any[];
+    name: string;
 }
 
 type WinnerSeat = "P1" | "P2";
@@ -87,6 +88,13 @@ export class CarRoom extends Room {
                     scores: this.scores,
                     matchOver: matchOver
                 });
+                this.battleStarted = false; 
+                this.suddenDeathStarted = false;
+                this.roundLocked = false;
+                this.round += 1; // 回合數增加
+
+                
+                console.log(`✅ 回合狀態已重置，準備進入第 ${this.round} 回合`);
                 
                 // 重置所有人的準備狀態，準備下一局
                 this.players.forEach(player => player.ready = false);
@@ -94,14 +102,15 @@ export class CarRoom extends Room {
         });
     }
 
-    onJoin(client: Client, _options: any) {
+    onJoin(client: Client, options: any) {
         const seat: "P1" | "P2" = this.clients.length === 1 ? "P1" : "P2";
-
+        const playerName = options.name || (seat === "P1" ? "Player 1" : "Player 2");
         this.players.set(client.sessionId, {
             sessionId: client.sessionId,
             seat,
             ready: false,
-            grid: []
+            grid: [],
+            name: playerName
         });
 
         console.log(`👤 玩家加入: ${client.sessionId} 分配到 ${seat}`);
@@ -110,15 +119,20 @@ export class CarRoom extends Room {
             seat,
             roomId: this.roomId,
             round: this.round,
-            scores: this.scores
+            scores: this.scores,
+            name: playerName
         });
 
         if (this.clients.length === 2) {
+            const p1 = this.getPlayer("P1");
+            const p2 = this.getPlayer("P2");
             this.broadcast("matched", {
                 status: "ready",
                 roomId: this.roomId,
                 round: this.round,
-                scores: this.scores
+                scores: this.scores,
+                p1Name: p1?.name || "P1", // 傳送 P1 名字
+                p2Name: p2?.name || "P2"  // 傳送 P2 名字
             });
         }
     }
